@@ -15,37 +15,6 @@ export function crearTexturaNumero(numero) {
     return new THREE.MeshBasicMaterial({ map: textura, transparent: true, depthWrite: false });
 }
 
-// Generador de Contenedores Inteligentes
-export function crearTachoInteligente(colorContenedor, colorLedEmisor) {
-    const grupoTacho = new THREE.Group();
-
-    // Cuerpo (3x3x4.5 cm)
-    const geomCuerpo = new THREE.BoxGeometry(3, 4.5, 3);
-    const matCuerpo = new THREE.MeshStandardMaterial({ color: colorContenedor, roughness: 0.5 });
-    const cuerpo = new THREE.Mesh(geomCuerpo, matCuerpo);
-    cuerpo.position.y = 2.25;
-    cuerpo.castShadow = true;
-    cuerpo.receiveShadow = true;
-    grupoTacho.add(cuerpo);
-
-    // Tapa
-    const geomTapa = new THREE.BoxGeometry(3.2, 0.4, 3.2);
-    const matTapa = new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.4 });
-    const tapa = new THREE.Mesh(geomTapa, matTapa);
-    tapa.position.y = 4.6;
-    tapa.castShadow = true;
-    grupoTacho.add(tapa);
-
-    // LED IoT
-    const geomLed = new THREE.SphereGeometry(0.25, 8, 8);
-    const matLed = new THREE.MeshBasicMaterial({ color: colorLedEmisor });
-    const led = new THREE.Mesh(geomLed, matLed);
-    led.position.set(0, 5.0, 0);
-    grupoTacho.add(led);
-
-    return grupoTacho;
-}
-
 // Generador de Camión Recolector Estilizado con Tolva en Reposo (Escala robusta para electrónica)
 export function crearCamionRecolector() {
     const grupoCamion = new THREE.Group();
@@ -242,6 +211,247 @@ export function crearCamionRecolector() {
 
     return grupoCamion;
 }
+
+// --- CONSTRUCTOR: TACHO DE RECICLAJE PARAMETRIZADO ---
+export function crearTacho(radio = 1.0, alto = 2.8, color = 0x2e7d32, rotar_flecha = -Math.PI / 4) {
+    const grupoTacho = new THREE.Group();
+    
+    // Calcular proporciones
+    const escala = radio / 1.0;
+    const altoEscalado = alto * escala;
+    
+    // --- MATERIALES ---
+    const matCuerpo = new THREE.MeshStandardMaterial({ 
+        color: color, 
+        roughness: 0.5, 
+        metalness: 0.1 
+    });
+    
+    // Color de tapa (ligeramente más claro)
+    const colorTapa = new THREE.Color(color);
+    colorTapa.offsetHSL(0, 0, 0.05);
+    const matTapa = new THREE.MeshStandardMaterial({ 
+        color: colorTapa, 
+        roughness: 0.4, 
+        metalness: 0.15 
+    });
+    
+    const matRueda = new THREE.MeshStandardMaterial({ 
+        color: 0x1a1a1a, 
+        roughness: 0.9 
+    });
+    
+    const matDetalle = new THREE.MeshStandardMaterial({ 
+        color: 0x444444, 
+        roughness: 0.5, 
+        metalness: 0.2 
+    });
+
+    const matFlecha = new THREE.MeshStandardMaterial({ 
+        color: 0xffffff, 
+        roughness: 0.3, 
+        metalness: 0.1,
+        emissive: 0xffffff,
+        emissiveIntensity: 0.05
+    });
+
+    // ─── 1. CUERPO PRINCIPAL (tronco cónico) ──────────────────────────────
+    const geomCuerpo = new THREE.CylinderGeometry(
+        radio * 1.0,        // radioTop
+        radio * 0.75,       // radioBottom
+        altoEscalado,       // height
+        12                  // segments
+    );
+    const cuerpo = new THREE.Mesh(geomCuerpo, matCuerpo);
+    cuerpo.position.y = altoEscalado / 2;
+    cuerpo.castShadow = true;
+    cuerpo.receiveShadow = true;
+    grupoTacho.add(cuerpo);
+
+    // ─── 2. TAPA ────────────────────────────────────────────────────────────
+    const geomTapa = new THREE.CylinderGeometry(
+        radio * 1.12,
+        radio * 1.05,
+        0.18 * escala,
+        12
+    );
+    const tapa = new THREE.Mesh(geomTapa, matTapa);
+    tapa.position.y = altoEscalado + 0.09 * escala;
+    tapa.castShadow = true;
+    grupoTacho.add(tapa);
+
+    // ─── 3. BORDE DE TAPA ──────────────────────────────────────────────────
+    const geomBordeTapa = new THREE.TorusGeometry(
+        radio * 1.08,
+        0.045 * escala,
+        8,
+        24
+    );
+    const bordeTapa = new THREE.Mesh(geomBordeTapa, matCuerpo);
+    bordeTapa.position.y = altoEscalado + 0.02 * escala;
+    bordeTapa.rotation.x = Math.PI / 2;
+    grupoTacho.add(bordeTapa);
+
+    // ─── 4. MANIJA SUPERIOR ────────────────────────────────────────────────
+    const geomManija = new THREE.TorusGeometry(
+        0.28 * escala,
+        0.055 * escala,
+        8,
+        16,
+        Math.PI
+    );
+    const manija = new THREE.Mesh(geomManija, matTapa);
+    manija.position.set(0, altoEscalado + 0.28 * escala, 0);
+    manija.rotation.x = Math.PI;
+    grupoTacho.add(manija);
+
+    // ─── 5. RUEDAS ──────────────────────────────────────────────────────────
+    const geomRueda = new THREE.CylinderGeometry(
+        0.22 * escala,
+        0.22 * escala,
+        0.14 * escala,
+        16
+    );
+
+    [-0.55 * radio, 0.55 * radio].forEach((offsetX) => {
+        const rueda = new THREE.Mesh(geomRueda, matRueda);
+        rueda.rotation.z = Math.PI / 2;
+        rueda.position.set(offsetX, 0.22 * escala, -0.62 * radio);
+        rueda.castShadow = true;
+        grupoTacho.add(rueda);
+    });
+
+    // ─── 6. EJE DE RUEDAS ──────────────────────────────────────────────────
+    const geomEje = new THREE.CylinderGeometry(
+        0.04 * escala,
+        0.04 * escala,
+        1.24 * radio,
+        8
+    );
+    const eje = new THREE.Mesh(geomEje, matRueda);
+    eje.rotation.z = Math.PI / 2;
+    eje.position.set(0, 0.22 * escala, -0.62 * radio);
+    grupoTacho.add(eje);
+
+    // ─── 7. PIE FRONTAL ─────────────────────────────────────────────────────
+    const geomPie = new THREE.BoxGeometry(
+        0.9 * radio,
+        0.10 * escala,
+        0.18 * radio
+    );
+    const pie = new THREE.Mesh(geomPie, matCuerpo);
+    pie.position.set(0, 0.05 * escala, 0.68 * radio);
+    grupoTacho.add(pie);
+
+    // ─── 8. TRES FLECHAS PLANAS (símbolo de reciclaje) ────────────────────
+    const grupoSimbolo = new THREE.Group();
+    const tamañoFlecha = 0.35 * escala;
+    
+    // --- FLECHA 1 (original) ---
+    const grupoFlecha1 = new THREE.Group();
+    
+    const geomCuerpoFlecha = new THREE.BoxGeometry(
+        tamañoFlecha * 0.7,
+        tamañoFlecha * 0.12,
+        0.02
+    );
+    const cuerpoFlecha1 = new THREE.Mesh(geomCuerpoFlecha, matFlecha);
+    cuerpoFlecha1.position.set(-tamañoFlecha * 0.25, 0, 0);
+    cuerpoFlecha1.rotation.z = Math.PI / 4;
+    grupoFlecha1.add(cuerpoFlecha1);
+
+    const geomPunta = new THREE.ConeGeometry(
+        tamañoFlecha * 0.2,
+        tamañoFlecha * 0.2,
+        3
+    );
+    const punta1 = new THREE.Mesh(geomPunta, matFlecha);
+    punta1.position.set(tamañoFlecha * 0.1, 0.1, 0);
+    punta1.rotation.z = -Math.PI / 3;
+    grupoFlecha1.add(punta1);
+    grupoFlecha1.position.set(tamañoFlecha * 0.8, -tamañoFlecha*0.4, 0)
+    grupoSimbolo.add(grupoFlecha1);
+
+    // --- FLECHA 2 (rotada 120°) ---
+    const grupoFlecha2 = new THREE.Group();
+    
+    const cuerpoFlecha2 = new THREE.Mesh(geomCuerpoFlecha, matFlecha);
+    cuerpoFlecha2.position.set(-tamañoFlecha * 0.25, 0, 0);
+    cuerpoFlecha2.rotation.z = Math.PI / 4;
+    grupoFlecha2.add(cuerpoFlecha2);
+
+    const punta2 = new THREE.Mesh(geomPunta, matFlecha);
+    punta2.position.set(tamañoFlecha * 0.1, 0.1, 0);
+    punta2.rotation.z = -Math.PI / 3;
+    grupoFlecha2.add(punta2);
+    
+    grupoFlecha2.rotation.z = (2 * Math.PI) / 3;
+    grupoFlecha2.position.set(tamañoFlecha * 0.15, tamañoFlecha*0.5, 0)
+    grupoSimbolo.add(grupoFlecha2);
+
+    // --- FLECHA 3 (rotada 240°) ---
+    const grupoFlecha3 = new THREE.Group();
+    
+    const cuerpoFlecha3 = new THREE.Mesh(geomCuerpoFlecha, matFlecha);
+    cuerpoFlecha3.position.set(-tamañoFlecha * 0.25, 0, 0);
+    cuerpoFlecha3.rotation.z = Math.PI / 4;
+    grupoFlecha3.add(cuerpoFlecha3);
+
+    const punta3 = new THREE.Mesh(geomPunta, matFlecha);
+    punta3.position.set(tamañoFlecha * 0.1, 0.1, 0);
+    punta3.rotation.z = -Math.PI / 3;
+    grupoFlecha3.position.set(-tamañoFlecha * 0.2, -tamañoFlecha*0.4, 0)
+    grupoFlecha3.add(punta3);
+    
+    grupoFlecha3.rotation.z = (4 * Math.PI) / 3;
+    grupoSimbolo.add(grupoFlecha3);
+
+    // Posicionar el símbolo en la cara frontal del tacho
+    grupoSimbolo.position.set(0, altoEscalado / 1.7, radio * 0.9);
+    grupoSimbolo.rotation.z = rotar_flecha;
+    grupoTacho.add(grupoSimbolo);
+
+    // ─── 9. FRANJA DECORATIVA HORIZONTAL ──────────────────────────────────
+    const geomFranja = new THREE.TorusGeometry(
+        radio * 0.98,
+        0.03 * escala,
+        6,
+        24
+    );
+    const franja = new THREE.Mesh(geomFranja, matTapa);
+    franja.position.y = altoEscalado * 0.66;
+    franja.rotation.x = Math.PI / 2;
+    grupoTacho.add(franja);
+
+    // ─── 10. SEGUNDA FRANJA DECORATIVA (inferior) ──────────────────────────
+    const geomFranjaInf = new THREE.TorusGeometry(
+        radio * 0.85,
+        0.025 * escala,
+        6,
+        24
+    );
+    const franjaInf = new THREE.Mesh(geomFranjaInf, matDetalle);
+    franjaInf.position.y = altoEscalado * 0.33;
+    franjaInf.rotation.x = Math.PI / 2;
+    grupoTacho.add(franjaInf);
+
+    // ─── 11. Sombra proyectada ─────────────────────────────────────────────
+    const geomSombra = new THREE.CircleGeometry(radio * 1.2, 16);
+    const matSombra = new THREE.MeshStandardMaterial({
+        color: 0x000000,
+        transparent: true,
+        opacity: 0.08,
+        side: THREE.DoubleSide,
+        depthWrite: false
+    });
+    const sombra = new THREE.Mesh(geomSombra, matSombra);
+    sombra.rotation.x = -Math.PI / 2;
+    sombra.position.y = 0.01;
+    grupoTacho.add(sombra);
+
+    return grupoTacho;
+}
+
 
 // --- CONSTRUCTOR: ÁRBOL FRONDOSO (ESTILO MANGO / REDONDEADO) ---
 export function crearArbol() {
@@ -1436,4 +1646,994 @@ export function crearPistaConRampa(
   }
 
   return grupoPista;
+}
+
+export function crearFajaSelectora(largoFaja = 20, anchoFaja = 3, alturaFaja = 1.5) {
+    const grupoFaja = new THREE.Group();
+
+    // Materiales básicos
+    const matFaja   = new THREE.MeshStandardMaterial({ color: 0x3B3B3A });
+    const matPaleta = new THREE.MeshStandardMaterial({ color: 0xFF6A4F });
+    const matRampa  = new THREE.MeshStandardMaterial({ color: 0x777777 });
+
+    // ── 1. CINTA TRANSPORTADORA ─────────────────────────────────────────────
+    const grosorFaja = 1.1;
+    const geomFaja = new THREE.BoxGeometry(largoFaja, grosorFaja, anchoFaja);
+    const faja = new THREE.Mesh(geomFaja, matFaja);
+    // Elevamos la base de la faja a la altura deseada
+    faja.position.y = alturaFaja + grosorFaja / 2-1.5;
+    grupoFaja.add(faja);
+
+    // ── 2. PALETAS Y RAMPAS ────────────────────────────────────────────────
+    const posiciones = [ -largoFaja/4, 0, largoFaja/4 ];
+    
+    posiciones.forEach((posX) => {
+        // Paleta: ajustada a la altura de la faja
+        const geomPaleta = new THREE.BoxGeometry(0.6, anchoFaja*1.2, 0.2);
+        const paleta = new THREE.Mesh(geomPaleta, matPaleta);
+        paleta.position.set(posX, alturaFaja*0.95, -anchoFaja/20);
+        paleta.rotation.y = -Math.PI / 3.5;
+        paleta.rotation.z = Math.PI / 2;
+        grupoFaja.add(paleta);
+
+        // Rampa: ajustada para que el inicio coincida con la altura de la faja
+        const geomRampa = new THREE.BoxGeometry(2, 0.2, largoFaja/5);
+        const rampa = new THREE.Mesh(geomRampa, matRampa);
+        
+        // Rotación y altura
+        rampa.rotation.y = -Math.PI/2;
+        rampa.rotation.z = -Math.PI / 6;
+        // Calculamos la posición para que toque el borde de la faja
+        rampa.position.set(posX, alturaFaja/3, anchoFaja/1.3);
+        grupoFaja.add(rampa);
+    });
+
+    return grupoFaja;
+}
+
+/**
+ * Crea una superficie plana (suelo) paramétrica
+ * @param {number} largo - Dimensión en el eje Z
+ * @param {number} ancho - Dimensión en el eje X
+ * @param {number} colorHex - Color en formato hex (ej: 0xcccccc para plomo claro)
+ */
+export function crearSuelo(largo = 10, ancho = 10, colorHex = 0xcccccc) {
+    const geomSuelo = new THREE.PlaneGeometry(ancho, largo);
+    
+    // Usamos DoubleSide para evitar problemas si la cámara mira desde abajo
+    const matSuelo = new THREE.MeshStandardMaterial({ 
+        color: colorHex, 
+        side: THREE.DoubleSide,
+        roughness: 0.9 
+    });
+
+    const suelo = new THREE.Mesh(geomSuelo, matSuelo);
+    
+    // Rotamos para que esté en el plano XZ (suelo) en lugar de XY (pared)
+    suelo.rotation.x = -Math.PI / 2;
+    
+    return suelo;
+}
+
+export function crearCentroAcopio(ancho = 20, profundo = 20, alto = 6) {
+    const grupo = new THREE.Group();
+
+    // ── PALETA DE COLORES INDUSTRIAL ──
+    const colores = {
+        piso:       0x4a4a4a,
+        pisoLineas: 0x616161,
+        muros:      0xd4c9b8,
+        murosInt:   0xe8e0d5,
+        techo:      0xc9c0b0,
+        vigas:      0x8a7a6a,
+        columnas:   0x9e8e7e,
+        enrollado:  0x6a7a7a,      // Gris metálico para el rollo
+        marco:      0x5a6a7a,      // Gris oscuro para el marco
+        metal:      0x889898,
+        acento:     0xc0392b,
+    };
+
+    // ── MATERIALES ──
+    const matPiso = new THREE.MeshStandardMaterial({ 
+        color: colores.piso, 
+        roughness: 0.8,
+        metalness: 0.1
+    });
+    
+    const matMuros = new THREE.MeshStandardMaterial({ 
+        color: colores.muros, 
+        roughness: 0.7,
+        metalness: 0.05
+    });
+    
+    const matTecho = new THREE.MeshStandardMaterial({ 
+        color: colores.techo, 
+        roughness: 0.6,
+        metalness: 0.1
+    });
+    
+    const matVigas = new THREE.MeshStandardMaterial({ 
+        color: colores.vigas, 
+        roughness: 0.5,
+        metalness: 0.3
+    });
+    
+    const matColumnas = new THREE.MeshStandardMaterial({ 
+        color: colores.columnas, 
+        roughness: 0.4,
+        metalness: 0.2
+    });
+
+    const matEnrollado = new THREE.MeshStandardMaterial({ 
+        color: colores.enrollado, 
+        roughness: 0.4,
+        metalness: 0.6
+    });
+
+    const matMarco = new THREE.MeshStandardMaterial({ 
+        color: colores.marco, 
+        roughness: 0.5,
+        metalness: 0.3
+    });
+
+    const matMetal = new THREE.MeshStandardMaterial({ 
+        color: colores.metal, 
+        roughness: 0.3,
+        metalness: 0.8
+    });
+
+    // ── 1. PISO DE CONCRETO ──
+    const piso = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho, 0.3, profundo),
+        matPiso
+    );
+    piso.position.y = 0.15;
+    grupo.add(piso);
+
+    // Líneas de división en el piso
+    const matLineas = new THREE.MeshStandardMaterial({ 
+        color: colores.pisoLineas, 
+        roughness: 0.9 
+    });
+    
+    for (let i = -ancho/2 + 2; i < ancho/2 - 1; i += 4) {
+        const linea = new THREE.Mesh(
+            new THREE.BoxGeometry(0.05, 0.02, profundo - 1),
+            matLineas
+        );
+        linea.position.set(i, 0.31, 0);
+        grupo.add(linea);
+    }
+
+    // ── 2. MUROS ──
+    // Pared trasera
+    const paredTrasera = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho, alto, 0.3),
+        matMuros
+    );
+    paredTrasera.position.set(0, alto/2, -profundo/2);
+    grupo.add(paredTrasera);
+
+    // Pared izquierda
+    const paredIzq = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, alto, profundo),
+        matMuros
+    );
+    paredIzq.position.set(-ancho/2, alto/2, 0);
+    grupo.add(paredIzq);
+
+    // Pared derecha
+    const paredDer = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, alto, profundo),
+        matMuros
+    );
+    paredDer.position.set(ancho/2, alto/2, 0);
+    grupo.add(paredDer);
+
+    // ── 3. TECHO PLANO ──
+    const techo = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho, 0.2, profundo),
+        matTecho
+    );
+    techo.position.set(0, alto, 0);
+    grupo.add(techo);
+
+    // ── 4. ESTRUCTURA DE VIGAS ──
+    // Vigas principales
+    for (let i = -ancho/2 + 2; i < ancho/2 - 1; i += 5) {
+        const viga = new THREE.Mesh(
+            new THREE.BoxGeometry(0.15, 0.25, profundo - 1),
+            matVigas
+        );
+        viga.position.set(i, alto - 0.1, 0);
+        grupo.add(viga);
+    }
+
+    // Vigas secundarias
+    for (let i = -profundo/2 + 2; i < profundo/2 - 1; i += 5) {
+        const viga = new THREE.Mesh(
+            new THREE.BoxGeometry(ancho - 1, 0.25, 0.15),
+            matVigas
+        );
+        viga.position.set(0, alto - 0.1, i);
+        grupo.add(viga);
+    }
+
+    // ── 5. COLUMNAS ESTRUCTURALES ──
+    const posColumnas = [
+        [-ancho/2 + 1, -profundo/2 + 1],
+        [ancho/2 - 1, -profundo/2 + 1],
+        [-ancho/2 + 1, profundo/2 - 1],
+        [ancho/2 - 1, profundo/2 - 1]
+    ];
+
+    posColumnas.forEach(([x, z]) => {
+        const columna = new THREE.Mesh(
+            new THREE.BoxGeometry(0.4, alto, 0.4),
+            matColumnas
+        );
+        columna.position.set(x, alto/2, z);
+        grupo.add(columna);
+        
+        const base = new THREE.Mesh(
+            new THREE.BoxGeometry(0.6, 0.1, 0.6),
+            matVigas
+        );
+        base.position.set(x, 0.05, z);
+        grupo.add(base);
+    });
+
+    // ── 6. MARCO PARA PUERTA ENROLLABLE (SIN PUERTA) ──
+    const anchoPuerta = ancho*0.95;
+    const altoPuerta = alto*0.9;
+    
+    // 6.1 MARCO SUPERIOR (dintel)
+    const dintel = new THREE.Mesh(
+        new THREE.BoxGeometry(anchoPuerta + 0.6, 0.3, 0.4),
+        matMarco
+    );
+    dintel.position.set(0, altoPuerta, profundo/2);
+    grupo.add(dintel);
+
+    // 6.2 MARCO LATERAL IZQUIERDO (jamba)
+    const jambaIzq = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, altoPuerta, 0.4),
+        matMarco
+    );
+    jambaIzq.position.set(-anchoPuerta/2 - 0.15, altoPuerta/2, profundo/2);
+    grupo.add(jambaIzq);
+
+    // 6.3 MARCO LATERAL DERECHO (jamba)
+    const jambaDer = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, altoPuerta, 0.4),
+        matMarco
+    );
+    jambaDer.position.set(anchoPuerta/2 + 0.15, altoPuerta/2, profundo/2);
+    grupo.add(jambaDer);
+
+    // 6.4 MARCO INFERIOR (umbral)
+    const umbral = new THREE.Mesh(
+        new THREE.BoxGeometry(anchoPuerta + 0.6, 0.15, 0.4),
+        matMarco
+    );
+    umbral.position.set(0, 0.075, profundo/2);
+    grupo.add(umbral);
+
+    // 6.5 RIELES LATERALES (guías metálicas)
+    const rielIzq = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, altoPuerta, 0.08),
+        matMetal
+    );
+    rielIzq.position.set(-anchoPuerta/2, altoPuerta/2, profundo/2 + 0.15);
+    grupo.add(rielIzq);
+
+    const rielDer = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08, altoPuerta, 0.08),
+        matMetal
+    );
+    rielDer.position.set(anchoPuerta/2, altoPuerta/2, profundo/2 + 0.15);
+    grupo.add(rielDer);
+
+    // 6.6 ROLLO DE LA PUERTA ENROLLADO (arriba)
+    const rolloPuerta = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.5, 0.5, anchoPuerta + 0.2, 16),
+        matEnrollado
+    );
+    rolloPuerta.rotation.z = Math.PI / 2;
+    rolloPuerta.position.set(0, altoPuerta + 0.2, profundo/2 + 0.1);
+    grupo.add(rolloPuerta);
+
+    // 6.7 TAPAS LATERALES DEL ROLLO
+    const tapaIzq = new THREE.Mesh(
+        new THREE.CircleGeometry(0.5, 16),
+        matMetal
+    );
+    tapaIzq.position.set(-anchoPuerta/2 - 0.1, altoPuerta + 0.2, profundo/2 + 0.1);
+    tapaIzq.rotation.y = Math.PI / 2;
+    grupo.add(tapaIzq);
+
+    const tapaDer = new THREE.Mesh(
+        new THREE.CircleGeometry(0.5, 16),
+        matMetal
+    );
+    tapaDer.position.set(anchoPuerta/2 + 0.1, altoPuerta + 0.2, profundo/2 + 0.1);
+    tapaDer.rotation.y = -Math.PI / 2;
+    grupo.add(tapaDer);
+
+    // 6.8 MOTOR DEL ENROLLADOR (detalle)
+    const motor = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 0.25, 0.25),
+        new THREE.MeshStandardMaterial({ 
+            color: 0x3a4a5a, 
+            roughness: 0.3,
+            metalness: 0.7
+        })
+    );
+    motor.position.set(anchoPuerta/2 + 0.4, altoPuerta + 0.2, profundo/2 + 0.1);
+    grupo.add(motor);
+
+    // 6.9 CABLE DE SEGURIDAD (simulado)
+    const cable = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.02, 0.02, altoPuerta + 0.3, 4),
+        matMetal
+    );
+    cable.position.set(-anchoPuerta/2 - 0.15, (altoPuerta + 0.3)/2, profundo/2 + 0.15);
+    grupo.add(cable);
+
+    const cable2 = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.02, 0.02, altoPuerta + 0.3, 4),
+        matMetal
+    );
+    cable2.position.set(anchoPuerta/2 + 0.15, (altoPuerta + 0.3)/2, profundo/2 + 0.15);
+    grupo.add(cable2);
+
+    // 6.10 SOPORTES DEL ROLLO
+    const soporteIzq = new THREE.Mesh(
+        new THREE.BoxGeometry(0.15, 0.15, 0.15),
+        matMetal
+    );
+    soporteIzq.position.set(-anchoPuerta/2 - 0.1, altoPuerta + 0.2, profundo/2 + 0.3);
+    grupo.add(soporteIzq);
+
+    const soporteDer = new THREE.Mesh(
+        new THREE.BoxGeometry(0.15, 0.15, 0.15),
+        matMetal
+    );
+    soporteDer.position.set(anchoPuerta/2 + 0.1, altoPuerta + 0.2, profundo/2 + 0.3);
+    grupo.add(soporteDer);
+
+    // ── 7. DETALLES DE SEGURIDAD ──
+    const matSeguridad = new THREE.MeshStandardMaterial({ 
+        color: colores.acento, 
+        roughness: 0.5,
+        metalness: 0.1
+    });
+
+    posColumnas.forEach(([x, z]) => {
+        for (let y = 0.5; y < alto; y += 1.2) {
+            const franja = new THREE.Mesh(
+                new THREE.BoxGeometry(0.45, 0.15, 0.45),
+                matSeguridad
+            );
+            franja.position.set(x, y, z);
+            grupo.add(franja);
+        }
+    });
+
+    // ── 8. SEÑALÉTICA ──
+    const cartel = new THREE.Mesh(
+        new THREE.BoxGeometry(4, 0.8, 0.05),
+        new THREE.MeshStandardMaterial({ 
+            color: 0x2c3e50, 
+            roughness: 0.4,
+            metalness: 0.1
+        })
+    );
+    cartel.position.set(0, alto*1.06, profundo/2);
+    grupo.add(cartel);
+
+    // ── 9. ILUMINACIÓN ──
+    const matLuz = new THREE.MeshStandardMaterial({
+        color: 0xfff8e7,
+        emissive: 0xfff8e7,
+        emissiveIntensity: 0.2,
+        transparent: true,
+        opacity: 0.6
+    });
+
+    for (let i = -ancho/2 + 4; i < ancho/2 - 3; i += 6) {
+        for (let j = -profundo/2 + 4; j < profundo/2 - 3; j += 6) {
+            const lampara = new THREE.Mesh(
+                new THREE.PlaneGeometry(1.5, 1.5),
+                matLuz
+            );
+            lampara.position.set(i, alto - 0.1, j);
+            lampara.rotation.x = -Math.PI / 2;
+            grupo.add(lampara);
+        }
+    }
+
+    return grupo;
+}
+
+export function crearCabinaRecepcion(ancho = 6, profundo = 4, alto = 3.5) {
+    const grupo = new THREE.Group();
+
+    // ── PALETA DE COLORES MINIMALISTA ──
+    const colores = {
+        exterior:   0xe8e0d5,      // Beige claro
+        techo:      0xd4ccc0,      // Gris claro
+        base:       0x8a7a6a,      // Gris madera
+        marco:      0x5a6a7a,      // Gris acero
+        vidrio:     0xadd8e6,      // Azul claro translúcido
+        puerta:     0x6d5f4f,      // Marrón oscuro
+        pomo:       0xc0a050,      // Bronce
+        acento:     0x2c3e50,      // Azul oscuro
+        detalle:    0x7a8a8a,      // Gris metálico
+    };
+
+    // ── MATERIALES ──
+    const matExterior = new THREE.MeshStandardMaterial({ 
+        color: colores.exterior, 
+        roughness: 0.7,
+        metalness: 0.05
+    });
+
+    const matTecho = new THREE.MeshStandardMaterial({ 
+        color: colores.techo, 
+        roughness: 0.6,
+        metalness: 0.1
+    });
+
+    const matBase = new THREE.MeshStandardMaterial({ 
+        color: colores.base, 
+        roughness: 0.8,
+        metalness: 0.05
+    });
+
+    const matMarco = new THREE.MeshStandardMaterial({ 
+        color: colores.marco, 
+        roughness: 0.4,
+        metalness: 0.5
+    });
+
+    const matVidrio = new THREE.MeshStandardMaterial({ 
+        color: colores.vidrio, 
+        roughness: 0.1,
+        metalness: 0.3,
+        transparent: true,
+        opacity: 0.35
+    });
+
+    const matPuerta = new THREE.MeshStandardMaterial({ 
+        color: colores.puerta, 
+        roughness: 0.6,
+        metalness: 0.1
+    });
+
+    const matPomo = new THREE.MeshStandardMaterial({ 
+        color: colores.pomo, 
+        roughness: 0.3,
+        metalness: 0.8
+    });
+
+    const matAcento = new THREE.MeshStandardMaterial({ 
+        color: colores.acento, 
+        roughness: 0.5,
+        metalness: 0.1
+    });
+
+    const matDetalle = new THREE.MeshStandardMaterial({ 
+        color: colores.detalle, 
+        roughness: 0.4,
+        metalness: 0.4
+    });
+
+    // ── 1. BASE (plataforma elevada) ──
+    const base = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho + 0.4, 0.2, profundo + 0.4),
+        matBase
+    );
+    base.position.y = 0.1;
+    grupo.add(base);
+
+    // ── 2. PAREDES ──
+    // Pared trasera
+    const paredTrasera = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho, alto, 0.15),
+        matExterior
+    );
+    paredTrasera.position.set(0, alto/2 + 0.1, -profundo/2);
+    grupo.add(paredTrasera);
+
+    // Pared izquierda
+    const paredIzq = new THREE.Mesh(
+        new THREE.BoxGeometry(0.15, alto, profundo),
+        matExterior
+    );
+    paredIzq.position.set(-ancho/2, alto/2 + 0.1, 0);
+    grupo.add(paredIzq);
+
+    // Pared derecha
+    const paredDer = new THREE.Mesh(
+        new THREE.BoxGeometry(0.15, alto, profundo),
+        matExterior
+    );
+    paredDer.position.set(ancho/2, alto/2 + 0.1, 0);
+    grupo.add(paredDer);
+
+    // Pared frontal (con puerta y ventana)
+    const paredFrontal = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho, alto, 0.15),
+        matExterior
+    );
+    paredFrontal.position.set(0, alto/2 + 0.1, profundo/2);
+    grupo.add(paredFrontal);
+
+    // ── 3. TECHO ──
+    const techo = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho, 0.1, profundo),
+        matTecho
+    );
+    techo.position.set(0, alto + 0.1, 0);
+    grupo.add(techo);
+
+    // ── 4. PUERTA (en pared frontal) ──
+    const anchoPuerta = 1.2;
+    const altoPuerta = 2.4;
+    const posPuertaX = -1.5; // Desplazada a la izquierda
+    
+    // Marco de la puerta
+    const marcoPuerta = new THREE.Mesh(
+        new THREE.BoxGeometry(anchoPuerta + 0.15, altoPuerta + 0.15, 0.2),
+        matMarco
+    );
+    marcoPuerta.position.set(posPuertaX, altoPuerta/2 + 0.1, profundo/2 + 0.02);
+    grupo.add(marcoPuerta);
+
+    // Hoja de la puerta
+    const puerta = new THREE.Mesh(
+        new THREE.BoxGeometry(anchoPuerta - 0.05, altoPuerta - 0.05, 0.1),
+        matPuerta
+    );
+    puerta.position.set(posPuertaX, altoPuerta/2 + 0.1, profundo/2 + 0.07);
+    grupo.add(puerta);
+
+    // Pomo de la puerta
+    const pomo = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06, 8, 8),
+        matPomo
+    );
+    pomo.position.set(posPuertaX + 0.45, 1.0 + 0.1, profundo/2 + 0.12);
+    grupo.add(pomo);
+
+    // ── 5. VENTANA GRANDE (en pared frontal) ──
+    const anchoVentana = 2.5;
+    const altoVentana = 1.8;
+    const posVentanaX = 1.8; // Desplazada a la derecha
+    
+    // Marco de la ventana
+    const marcoVentana = new THREE.Mesh(
+        new THREE.BoxGeometry(anchoVentana + 0.15, altoVentana + 0.15, 0.2),
+        matMarco
+    );
+    marcoVentana.position.set(posVentanaX, altoVentana/2 + 0.7 + 0.1, profundo/2 + 0.02);
+    grupo.add(marcoVentana);
+
+    // Vidrio de la ventana (panel principal)
+    const vidrio = new THREE.Mesh(
+        new THREE.BoxGeometry(anchoVentana - 0.05, altoVentana - 0.05, 0.05),
+        matVidrio
+    );
+    vidrio.position.set(posVentanaX, altoVentana/2 + 0.7 + 0.1, profundo/2 + 0.07);
+    grupo.add(vidrio);
+
+    // Divisiones de la ventana (estilo industrial)
+    const divisionVentana = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, altoVentana - 0.1, 0.06),
+        matMarco
+    );
+    divisionVentana.position.set(posVentanaX, altoVentana/2 + 0.7 + 0.1, profundo/2 + 0.07);
+    grupo.add(divisionVentana);
+
+    const divisionVentanaH = new THREE.Mesh(
+        new THREE.BoxGeometry(anchoVentana - 0.1, 0.04, 0.06),
+        matMarco
+    );
+    divisionVentanaH.position.set(posVentanaX, altoVentana/2 + 0.7 + 0.1, profundo/2 + 0.07);
+    grupo.add(divisionVentanaH);
+
+    // ── 6. VENTANA LATERAL (pared derecha) ──
+    const anchoVentanaLat = 1.5;
+    const altoVentanaLat = 1.2;
+    
+    const marcoVentanaLat = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, altoVentanaLat + 0.15, anchoVentanaLat + 0.15),
+        matMarco
+    );
+    marcoVentanaLat.position.set(ancho/2 + 0.02, altoVentanaLat/2 + 1.0 + 0.1, 0);
+    grupo.add(marcoVentanaLat);
+
+    const vidrioLat = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, altoVentanaLat - 0.05, anchoVentanaLat - 0.05),
+        matVidrio
+    );
+    vidrioLat.position.set(ancho/2 + 0.07, altoVentanaLat/2 + 1.0 + 0.1, 0);
+    grupo.add(vidrioLat);
+
+    // ── 7. RÓTULO "RECEPCIÓN" ──
+    const rotulo = new THREE.Mesh(
+        new THREE.BoxGeometry(2.0, 0.4, 0.05),
+        matAcento
+    );
+    rotulo.position.set(0, alto*1.07, profundo/2 + 0.02);
+    grupo.add(rotulo);
+
+    // ── 8. DETALLES EXTERIORES ──
+    // Canaleta de agua (techo)
+    const canaleta = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho - 0.5, 0.05, 0.1),
+        matDetalle
+    );
+    canaleta.position.set(0, alto + 0.15, profundo/2 + 0.05);
+    grupo.add(canaleta);
+
+    // Bajante de agua (esquina)
+    const bajante = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.04, 0.04, alto + 0.1, 6),
+        matDetalle
+    );
+    bajante.position.set(ancho/2 - 0.3, (alto + 0.1)/2, profundo/2 - 0.3);
+    grupo.add(bajante);
+
+    // ── 9. ESCALÓN DE ENTRADA ──
+    const escalon = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 0.1, 0.4),
+        matBase
+    );
+    escalon.position.set(posPuertaX, 0.25, profundo/2 + 0.2);
+    grupo.add(escalon);
+
+    // ── 10. JARDINERA (detalle exterior) ──
+    const jardinera = new THREE.Mesh(
+        new THREE.BoxGeometry(1.0, 0.3, 0.3),
+        new THREE.MeshStandardMaterial({ color: 0x5a6a5a, roughness: 0.9 })
+    );
+    jardinera.position.set(ancho/2 - 1.0, 0.35, profundo/2 + 0.3);
+    grupo.add(jardinera);
+
+    // Plantas (simples)
+    for (let i = 0; i < 3; i++) {
+        const planta = new THREE.Mesh(
+            new THREE.SphereGeometry(0.08, 6, 6),
+            new THREE.MeshStandardMaterial({ color: 0x2d5a27, roughness: 0.9 })
+        );
+        planta.position.set(ancho/2 - 1.0 + (i - 1) * 0.35, 0.5, profundo/2 + 0.3);
+        grupo.add(planta);
+    }
+
+    return grupo;
+}
+
+export function crearEstacionRenovable(ancho = 3, profundo = 2.5, alto = 2.8) {
+    const grupo = new THREE.Group();
+
+    // ── PALETA DE COLORES ──
+    const colores = {
+        exterior:    0x8a9a7a,      // Verde grisáceo (eco-friendly)
+        techo:       0x6a7a5a,      // Verde oscuro
+        base:        0x5a6a5a,      // Gris verdoso
+        marco:       0x4a5a4a,      // Verde oscuro metálico
+        panel:       0x2a3a5a,      // Azul oscuro (paneles)
+        vidrio:      0x88bbdd,      // Azul claro translúcido
+        puerta:      0x5a6a5a,      // Verde grisáceo
+        acento:      0x4caf50,      // Verde renovable
+        detalles:    0x78909c,      // Gris metal
+        iluminacion: 0x66bb6a,      // Verde claro LED
+        techoPanel:  0x1a2a4a,      // Azul muy oscuro
+    };
+
+    // ── MATERIALES ──
+    const matExterior = new THREE.MeshStandardMaterial({ 
+        color: colores.exterior, 
+        roughness: 0.7,
+        metalness: 0.1
+    });
+
+    const matTecho = new THREE.MeshStandardMaterial({ 
+        color: colores.techo, 
+        roughness: 0.6,
+        metalness: 0.1
+    });
+
+    const matBase = new THREE.MeshStandardMaterial({ 
+        color: colores.base, 
+        roughness: 0.8,
+        metalness: 0.05
+    });
+
+    const matMarco = new THREE.MeshStandardMaterial({ 
+        color: colores.marco, 
+        roughness: 0.5,
+        metalness: 0.3
+    });
+
+    const matPanel = new THREE.MeshStandardMaterial({ 
+        color: colores.panel, 
+        roughness: 0.3,
+        metalness: 0.1
+    });
+
+    const matVidrio = new THREE.MeshStandardMaterial({ 
+        color: colores.vidrio, 
+        roughness: 0.1,
+        metalness: 0.3,
+        transparent: true,
+        opacity: 0.3
+    });
+
+    const matPuerta = new THREE.MeshStandardMaterial({ 
+        color: colores.puerta, 
+        roughness: 0.6,
+        metalness: 0.2
+    });
+
+    const matAcento = new THREE.MeshStandardMaterial({ 
+        color: colores.acento, 
+        roughness: 0.5,
+        metalness: 0.1
+    });
+
+    const matDetalles = new THREE.MeshStandardMaterial({ 
+        color: colores.detalles, 
+        roughness: 0.4,
+        metalness: 0.4
+    });
+
+    const matIluminacion = new THREE.MeshStandardMaterial({
+        color: colores.iluminacion,
+        emissive: colores.iluminacion,
+        emissiveIntensity: 0.2,
+        transparent: true,
+        opacity: 0.5
+    });
+
+    const matTechoPanel = new THREE.MeshStandardMaterial({ 
+        color: colores.techoPanel, 
+        roughness: 0.3,
+        metalness: 0.1
+    });
+
+    // ── 1. BASE ──
+    const base = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho + 0.3, 0.15, profundo + 0.3),
+        matBase
+    );
+    base.position.y = 0.075;
+    grupo.add(base);
+
+    // ── 2. PAREDES (estructura cerrada) ──
+    // Pared trasera
+    const paredTrasera = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho, alto, 0.1),
+        matExterior
+    );
+    paredTrasera.position.set(0, alto/2 + 0.15, -profundo/2);
+    grupo.add(paredTrasera);
+
+    // Pared izquierda
+    const paredIzq = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1, alto, profundo),
+        matExterior
+    );
+    paredIzq.position.set(-ancho/2, alto/2 + 0.15, 0);
+    grupo.add(paredIzq);
+
+    // Pared derecha
+    const paredDer = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1, alto, profundo),
+        matExterior
+    );
+    paredDer.position.set(ancho/2, alto/2 + 0.15, 0);
+    grupo.add(paredDer);
+
+    // Pared frontal (con puerta)
+    const paredFrontal = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho, alto, 0.1),
+        matExterior
+    );
+    paredFrontal.position.set(0, alto/2 + 0.15, profundo/2);
+    grupo.add(paredFrontal);
+
+    // ── 3. TECHO ──
+    const techo = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho, 0.08, profundo),
+        matTecho
+    );
+    techo.position.set(0, alto + 0.15, 0);
+    grupo.add(techo);
+
+    // ── 4. PANELES SOLARES EN EL TECHO ──
+    const numPanelesX = 3;
+    const numPanelesZ = 2;
+    const anchoPanel = 0.8;
+    const profundoPanel = 0.8;
+    const separacion = 0.1;
+
+    for (let i = 0; i < numPanelesX; i++) {
+        for (let j = 0; j < numPanelesZ; j++) {
+            // Base del panel
+            const basePanel = new THREE.Mesh(
+                new THREE.BoxGeometry(anchoPanel, 0.02, profundoPanel),
+                matMarco
+            );
+            const x = -ancho/2 + anchoPanel/2 + i * (anchoPanel + separacion) + 0.2;
+            const z = -profundo/2 + profundoPanel/2 + j * (profundoPanel + separacion) + 0.2;
+            basePanel.position.set(x, alto + 0.17, z);
+            basePanel.rotation.x = 0.1; // Ligera inclinación
+            grupo.add(basePanel);
+
+            // Panel solar (vidrio)
+            const panel = new THREE.Mesh(
+                new THREE.BoxGeometry(anchoPanel - 0.05, 0.015, profundoPanel - 0.05),
+                matVidrio
+            );
+            panel.position.set(x, alto + 0.19, z);
+            panel.rotation.x = 0.1;
+            grupo.add(panel);
+
+            // Celdas (simuladas)
+            for (let ci = -0.25; ci <= 0.25; ci += 0.5) {
+                for (let cj = -0.25; cj <= 0.25; cj += 0.5) {
+                    const celda = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.2, 0.01, 0.2),
+                        matTechoPanel
+                    );
+                    celda.position.set(x + ci, alto + 0.2, z + cj);
+                    celda.rotation.x = 0.1;
+                    grupo.add(celda);
+                }
+            }
+        }
+    }
+
+    // ── 5. PUERTA (en pared frontal) ──
+    const anchoPuerta = 0.9;
+    const altoPuerta = 2.0;
+    
+    // Marco de la puerta
+    const marcoPuerta = new THREE.Mesh(
+        new THREE.BoxGeometry(anchoPuerta + 0.1, altoPuerta + 0.1, 0.15),
+        matMarco
+    );
+    marcoPuerta.position.set(0, altoPuerta/2 + 0.15, profundo/2 + 0.02);
+    grupo.add(marcoPuerta);
+
+    // Hoja de la puerta
+    const puerta = new THREE.Mesh(
+        new THREE.BoxGeometry(anchoPuerta - 0.02, altoPuerta - 0.02, 0.08),
+        matPuerta
+    );
+    puerta.position.set(0, altoPuerta/2 + 0.15, profundo/2 + 0.07);
+    grupo.add(puerta);
+
+    // Pomo
+    const pomo = new THREE.Mesh(
+        new THREE.SphereGeometry(0.04, 8, 8),
+        new THREE.MeshStandardMaterial({ 
+            color: 0xc0a050, 
+            roughness: 0.3,
+            metalness: 0.8
+        })
+    );
+    pomo.position.set(0.35, 0.9 + 0.15, profundo/2 + 0.1);
+    grupo.add(pomo);
+
+    // ── 6. VENTANA PEQUEÑA (para ventilación) ──
+    const anchoVentana = 0.6;
+    const altoVentana = 0.4;
+    
+    const marcoVentana = new THREE.Mesh(
+        new THREE.BoxGeometry(anchoVentana + 0.08, altoVentana + 0.08, 0.15),
+        matMarco
+    );
+    marcoVentana.position.set(0.8, 1.6 + 0.15, profundo/2 + 0.02);
+    grupo.add(marcoVentana);
+
+    const vidrio = new THREE.Mesh(
+        new THREE.BoxGeometry(anchoVentana - 0.02, altoVentana - 0.02, 0.05),
+        matVidrio
+    );
+    vidrio.position.set(0.8, 1.6 + 0.15, profundo/2 + 0.07);
+    grupo.add(vidrio);
+
+    // ── 7. SÍMBOLO DE RENOVABLE (en la pared frontal) ──
+    // Círculo
+    const circulo = new THREE.Mesh(
+        new THREE.RingGeometry(0.2, 0.28, 24),
+        matAcento
+    );
+    circulo.position.set(-0.8, 1.8 + 0.15, profundo/2 + 0.06);
+    grupo.add(circulo);
+
+    // Triángulo
+    const formaTriangulo = new THREE.Shape();
+    formaTriangulo.moveTo(0, 0.28);
+    formaTriangulo.lineTo(-0.22, -0.16);
+    formaTriangulo.lineTo(0.22, -0.16);
+    formaTriangulo.closePath();
+
+    const triangulo = new THREE.Mesh(
+        new THREE.ShapeGeometry(formaTriangulo),
+        matAcento
+    );
+    triangulo.position.set(-0.8, 1.65 + 0.15, profundo/2 + 0.06);
+    grupo.add(triangulo);
+
+    // Línea horizontal
+    const linea = new THREE.Mesh(
+        new THREE.BoxGeometry(0.35, 0.04, 0.01),
+        matAcento
+    );
+    linea.position.set(-0.8, 1.5 + 0.15, profundo/2 + 0.06);
+    grupo.add(linea);
+
+    // ── 8. REJILLA DE VENTILACIÓN ──
+    const rejilla = new THREE.Mesh(
+        new THREE.BoxGeometry(0.3, 0.15, 0.02),
+        matDetalles
+    );
+    rejilla.position.set(-0.5, 0.4 + 0.15, profundo/2 + 0.06);
+    grupo.add(rejilla);
+
+    // Líneas de la rejilla
+    for (let i = 0; i < 4; i++) {
+        const lineaRejilla = new THREE.Mesh(
+            new THREE.BoxGeometry(0.25, 0.01, 0.03),
+            matMarco
+        );
+        lineaRejilla.position.set(-0.5, 0.35 + i * 0.04 + 0.15, profundo/2 + 0.07);
+        grupo.add(lineaRejilla);
+    }
+
+    // ── 9. PLACA IDENTIFICATIVA ──
+    const placa = new THREE.Mesh(
+        new THREE.BoxGeometry(0.4, 0.08, 0.02),
+        matDetalles
+    );
+    placa.position.set(0.8, 0.4 + 0.15, profundo/2 + 0.06);
+    grupo.add(placa);
+
+    // ── 10. BASE DE CONCRETO (alrededor) ──
+    const bordeConcreto = new THREE.Mesh(
+        new THREE.BoxGeometry(ancho + 0.5, 0.04, profundo + 0.5),
+        new THREE.MeshStandardMaterial({ color: 0x6a7a7a, roughness: 0.9 })
+    );
+    bordeConcreto.position.y = 0.01;
+    grupo.add(bordeConcreto);
+
+    // ── 11. LUZ LED DE ESTADO (en el techo) ──
+    const ledVerde = new THREE.Mesh(
+        new THREE.SphereGeometry(0.03, 8, 8),
+        matIluminacion
+    );
+    ledVerde.position.set(0, alto + 0.25 + 0.15, 0);
+    grupo.add(ledVerde);
+
+    // ── 12. ANTENA DE COMUNICACIÓN (detalle) ──
+    const antena = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.01, 0.015, 0.3, 6),
+        matDetalles
+    );
+    antena.position.set(0.5, alto + 0.4 + 0.15, 0.5);
+    grupo.add(antena);
+
+    const baseAntena = new THREE.Mesh(
+        new THREE.SphereGeometry(0.02, 6, 6),
+        matDetalles
+    );
+    baseAntena.position.set(0.5, alto + 0.55 + 0.15, 0.5);
+    grupo.add(baseAntena);
+
+    return grupo;
 }

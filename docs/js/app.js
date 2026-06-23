@@ -1,4 +1,4 @@
-import { crearTexturaNumero, crearTachoInteligente, crearCamionRecolector, crearArbol, crearCasaResidencial, crearEdificioPlano, crearAutomovil, crearZonaVerde, crearPlazaCivica, crearPileta, crearTiendaTambo, crearBancoPlaza, crearMesaAjedrezUrbana, crearJardineraBorde, crearCasaResidencialParam, crearEdificioParametrico, crearCanalOndulado, crearPuenteLevadizo, crearPistaConRampa} from './components.js';
+import { crearTexturaNumero, crearCamionRecolector, crearArbol, crearCasaResidencial, crearEdificioPlano, crearAutomovil, crearZonaVerde, crearPlazaCivica, crearPileta, crearTiendaTambo, crearBancoPlaza, crearMesaAjedrezUrbana, crearJardineraBorde, crearCasaResidencialParam, crearEdificioParametrico, crearCanalOndulado, crearPuenteLevadizo, crearPistaConRampa, crearFajaSelectora, crearSuelo, crearCentroAcopio, crearCabinaRecepcion, crearEstacionRenovable, crearTacho} from './components.js';
 import { inicializarRegla } from './medicion.js';
 
 // --- 1. CONFIGURACIÓN DE ESCENA Y RENDER ---
@@ -546,25 +546,96 @@ plataformaRecoleccion.position.set(centroCampoX, 0.015, centroCampoZ);
 plataformaRecoleccion.receiveShadow = true;
 scene.add(plataformaRecoleccion);
 
+const tacho = crearTacho(1.1,2.8, 0x3E59AD);
+tacho.position.set(inicioCampoX+6, 0.05, centroCampoZ);
+scene.add(tacho);
+
+// Tacho verde con flecha blanca
+const tachoVerde = crearTacho(1.0, 2.8, 0x2e7d32);
+tachoVerde.position.set(inicioCampoX+10, 0.05, centroCampoZ);
+scene.add(tachoVerde);
+// Tacho azul con flecha blanca
+const tachoAzul = crearTacho(1.2, 3.0, 0x1565c0);
+tachoAzul.position.set(inicioCampoX+14, 0.05, centroCampoZ);
+scene.add(tachoAzul);
+// Tacho rojo con flecha blanca
+const tachoRojo = crearTacho(0.8, 2.5, 0xc62828);
+tachoRojo.position.set(inicioCampoX+18, 0.05, centroCampoZ);
+scene.add(tachoRojo);
+
+// Ejemplo: Crear una zona de suelo plomo claro (0xcccccc)
+// Tamaño 20x20
+const zonaSuelo = crearSuelo(20, 20, 0xcccccc);
+
+// Ubicación
+zonaSuelo.position.set(0, 0, 0); 
+scene.add(zonaSuelo);
+
+// ============================================================================
+// URBANIZACIÓN: SECTOR 19, 20, 21 SERVICIOS  - CENTRO DE ACOPIO CON FAJA SELECTORA DE RESIDUOS Y 
+// ============================================================================
+const centroFajaX = (columnasX[3] + columnasX[6]);
+const centroFajaZ = (filasZ[3]); 
+
+// 1. Crear el suelo (plomo claro: 0xcccccc)
+// Usamos dimensiones ligeramente mayores a la faja (14 x 4) para crear un efecto de "área de trabajo"
+const sueloFaja = crearSuelo(24.5, 50, 0x525252);
+sueloFaja.position.set(centroFajaX+0.8, 0.05, centroFajaZ-12.2); // Ligeramente elevado para evitar z-fighting
+scene.add(sueloFaja);
+
+// 2. Crear e instanciar la faja (altura 0.5 para que esté sobre el suelo)
+// Definimos los desplazamientos en X para cada faja
+const offsetsX = [15, 8, 2]; // Puedes añadir más aquí en el futuro
+
+offsetsX.forEach((offsetX) => {
+    const faja = crearFajaSelectora(13, 2.7, 1.2); 
+    faja.rotation.y = Math.PI / 2; 
+    faja.position.set(centroFajaX + offsetX, 0, centroFajaZ - 12);
+    
+    // Si también quieres el suelo para cada una:
+    const suelo = crearSuelo(14, 4, 0xcccccc);
+    suelo.position.set(centroFajaX + offsetX, 0.01, centroFajaZ - 12);
+    
+    scene.add(suelo);
+    scene.add(faja);
+});
+
+// ============================================================================
+// URBANIZACIÓN: INSTANCIACIÓN DEL CENTRO DE ACOPIO
+// ============================================================================
+
+// Calculamos el centro del área ocupada por las fajas
+// Promedio de los offsets (15, 8, 2) = 8.33
+const centroEdificioX = centroFajaX + 8.5; 
+const centroEdificioZ = centroFajaZ - 12;
+
+// Instanciamos el edificio
+// Ancho: debe cubrir desde offset 2 hasta 15 (aprox 18 unidades)
+// Profundo: debe cubrir la longitud de las fajas (13 unidades)
+const centroAcopio = crearCentroAcopio(22, 16, 8); 
+
+centroAcopio.position.set(centroEdificioX, 0, centroEdificioZ);
+scene.add(centroAcopio);
+
+const cabina = crearCabinaRecepcion(9, 10, 5);
+cabina.position.set(centroFajaX-9, 0, 25); // Colocarla a un lado
+scene.add(cabina)
+
+
+const arbolJardin20 = crearArbol();
+arbolJardin20.position.set(centroEdificioX - 30, 0.15, centroEdificioX -8);
+scene.add(arbolJardin20);
+
+const estacionRenovable = crearEstacionRenovable(4, 12, 5);
+estacionRenovable.position.set(centroEdificioX+14, 0, centroEdificioZ);
+scene.add(estacionRenovable);
 
 // --- SUB-ZONA DE TACHOS (Manteniendo lógica estricta en Sectores 15-16) ---
 const finEstacionX = columnasX[2] - anchoPista / 2;
 const anchoEstacionX = finEstacionX - inicioCampoX;
 const separacionX = anchoEstacionX / 5;
 
-const tiposTachos = [
-    { contenedor: 0x0055ff, led: 0x00ff00 }, // Papel
-    { contenedor: 0xffcc00, led: 0x00ff00 }, // Plástico
-    { contenedor: 0x009933, led: 0xff0000 }, // Vidrio (Lleno)
-    { contenedor: 0x663300, led: 0x00ff00 }  // Orgánico
-];
 
-tiposTachos.forEach((tachoConfig, index) => {
-    const tacho3D = crearTachoInteligente(tachoConfig.contenedor, tachoConfig.led);
-    const posX = inicioCampoX + separacionX * (index + 1);
-    tacho3D.position.set(posX, 0.015, centroCampoZ);
-    scene.add(tacho3D);
-});
 
 
 // --- SUB-ZONA DE ESTACIONAMIENTO LONGITUDINAL (Sectores 17-18) ---
