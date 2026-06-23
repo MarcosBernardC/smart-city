@@ -1,4 +1,4 @@
-import { crearTexturaNumero, crearTachoInteligente, crearCamionRecolector, crearArbol, crearCasaResidencial, crearEdificioPlano, crearAutomovil, crearZonaVerde, crearPlazaCivica, crearPileta, crearTiendaTambo, crearBancoPlaza, crearMesaAjedrezUrbana, crearJardineraBorde, crearCasaResidencialParam, crearEdificioParametrico, crearCanalOndulado, crearPuenteLevadizo} from './components.js';
+import { crearTexturaNumero, crearTachoInteligente, crearCamionRecolector, crearArbol, crearCasaResidencial, crearEdificioPlano, crearAutomovil, crearZonaVerde, crearPlazaCivica, crearPileta, crearTiendaTambo, crearBancoPlaza, crearMesaAjedrezUrbana, crearJardineraBorde, crearCasaResidencialParam, crearEdificioParametrico, crearCanalOndulado, crearPuenteLevadizo, crearPistaConRampa} from './components.js';
 import { inicializarRegla } from './medicion.js';
 
 // --- 1. CONFIGURACIÓN DE ESCENA Y RENDER ---
@@ -289,15 +289,31 @@ const centroCanalZ = (filasZ[0] + filasZ[1]) / 2;
 //crearCanalOndulado(20, 10, 5, 'izquierda') // solo franja izquierda
 //crearCanalOndulado(20, 10, 5, 'ninguna')   // canal limpio sin vegetación
 
-const canalOndulado = crearCanalOndulado(35, 10, 6.8, 'izquierda');
+const canalOndulado = crearCanalOndulado(35, 10, 6.8, 'ambas');
 canalOndulado.position.set(centroCanalX+4, 0.02, centroCanalZ+3.5);
 canalOndulado.rotation.y = (Math.PI)*1.074;
 scene.add(canalOndulado);
 
-const canalOndulado2 = crearCanalOndulado(32, 10, 10, 'derecha');
+const canalOndulado2 = crearCanalOndulado(32, 10, 6.7, 'ambas');
 canalOndulado2.position.set(centroCanalX+10.5, 0.02, centroCanalZ+18.5);
 canalOndulado2.rotation.y = (Math.PI/2)*1.2;
 scene.add(canalOndulado2);
+
+// ============================================================================
+// URBANIZACIÓN: SECTOR 7 (extremeo de puente y pasto)
+// ============================================================================
+const centroSector7X = 1.25*columnasX[6];
+const centroSector7Z = 0.75*filasZ[0];
+
+const rampaSalida = crearPistaConRampa(7,6,5,9,0, 10);
+rampaSalida.rotation.y = -(Math.PI)*0.5;
+rampaSalida.position.set(centroSector7X-2, 0, centroSector7Z-8.5);
+scene.add(rampaSalida);
+
+// Instanciamos la superficie de pasto puro optimizada
+const sectorVerde7 = crearZonaVerde(14, 16.0);
+sectorVerde7.position.set(centroSector7X-0.5, 0.015, centroSector7Z-2);
+scene.add(sectorVerde7);
 
 // ============================================================================
 // URBANIZACIÓN: SECTOR 8 (Zona Residencial/Comercial de Baja Altura)
@@ -475,12 +491,38 @@ scene.add(piletaCentro);
 // ============================================================================
 // Asumiendo que las zonas 13 y 14 se definen por filasZ[1] y filasZ[2]
 const centroPuenteX = (columnasX[6] + columnasX[7]) / 2;
-const centroPuenteZ = (filasZ[1] + filasZ[2]) / 2;
+const centroPuenteZ = (filasZ[1]) / 2;
 //crearPuenteLevadizo(anchoRio, anchoPuente, alturaPilar, anguloApertura)
 const puenteLevadizo = crearPuenteLevadizo(24, 8, 4,0); // 30 grados de apertura
 puenteLevadizo.rotation.y = Math.PI/2;
-puenteLevadizo.position.set(centroCanalX + 18, 0.02, centroCanalZ +13.5);
+puenteLevadizo.position.set(centroPuenteX, 0.02, centroPuenteZ-5);
 scene.add(puenteLevadizo);
+
+const centroRampaX = columnasX[6]-columnasX[6]/5;
+const centroRampaZ = (filasZ[1]+filasZ[2]);
+const rampaAcceso = crearPistaConRampa(7,15,5,9,Math.PI / 2.9, 8);
+rampaAcceso.rotation.y = 0;
+rampaAcceso.position.set(centroRampaX-2.2, 0, centroRampaZ + 12);
+scene.add(rampaAcceso);
+
+const pistacurva1 = crearPistaConRampa(7,15,0.1,9,Math.PI / 2.9, 8);
+pistacurva1.position.set(centroRampaX-2.2, 0, centroRampaZ + 12);
+scene.add(pistacurva1);
+
+const pistacurva2 = crearPistaConRampa(7,45,0.1,9,Math.PI / 4, 8);
+pistacurva2.position.set(centroRampaX+20.2, 0, centroRampaZ + 12);
+pistacurva2.rotation.y = Math.PI;
+scene.add(pistacurva2);
+
+// Instanciamos la superficie de pasto puro optimizada
+const sectorVerde14 = crearZonaVerde(15.5, 18.0);
+sectorVerde14.position.set(centroPuenteX+1, 0.015, centroPuenteZ+13.8);
+scene.add(sectorVerde14);
+
+// Instanciamos la superficie de pasto puro optimizada
+const sectorVerde14_2 = crearZonaVerde(25, 7.0);
+sectorVerde14_2.position.set(centroPuenteX-15, 0.015, centroPuenteZ+11.8);
+scene.add(sectorVerde14_2);
 
 // ============================================================================
 // MACRO-CAMPO DE RECOLECCIÓN INTEGRADA (Sectores 15, 16, 17 y 18 Unificados)

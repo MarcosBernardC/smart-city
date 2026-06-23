@@ -533,7 +533,7 @@ export function crearZonaVerde(anchoX = 7.0, largoZ = 7.0) {
         // Solo alteramos los vértices de la cara superior (los que tienen Y positiva)
         if (y > 0) {
             // Añadimos una variación sutil y aleatoria en la altura (entre -0.05 y +0.08)
-            const desvAlatorio = -0.05 + Math.random() * 0.13;
+            const desvAlatorio = -0.05 + Math.random() * 0.02;
             positionAttribute.setY(i, y + desvAlatorio);
             
             // Movemos levemente en X y Z para romper las líneas de cuadrícula perfectas
@@ -1271,4 +1271,169 @@ export function crearPuenteLevadizo(anchoRio = 12, anchoPuente = 4, alturaPilar 
     grupoPuente.add(grupoTablero);
 
     return grupoPuente;
+}
+
+export function crearPistaConRampa(
+  ancho = 7,
+  largoTotal = 15,
+  alturaFinal = 6,
+  largoCurva = 10,
+  anguloCurva = Math.PI / 2.1,
+  segmentosCurva = 20
+) {
+  const grupoPista = new THREE.Group();
+
+  const matPista   = new THREE.MeshStandardMaterial({ color: 0x555555, side: THREE.DoubleSide });
+  const matSoporte = new THREE.MeshStandardMaterial({ color: 0x444444 });
+
+  // ── 1. PERFIL LATERAL (Shape) ──────────────────────────────
+  const largoBase  = largoTotal * 0.3;
+  const largoRampa = largoTotal * 0.7;
+
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 0);
+  shape.lineTo(largoBase, 0);
+  shape.lineTo(largoTotal, alturaFinal);
+  shape.lineTo(largoTotal, alturaFinal - 0.2);
+  shape.lineTo(largoBase, -0.2);
+  shape.lineTo(0, -0.2);
+  shape.lineTo(0, 0);
+
+  // ── 2. GEOMETRÍA EXTRUIDA (rampa) ──────────────────────────
+  const extrudeSettings = { depth: ancho, bevelEnabled: false };
+  const geomPista = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+  const pista = new THREE.Mesh(geomPista, matPista);
+  pista.position.z = -ancho / 2;
+  grupoPista.add(pista);
+
+  // ── 3. SOPORTES PARAMÉTRICOS ───────────────────────────────
+  const numSoportes = 3;
+  for (let i = 1; i <= numSoportes; i++) {
+    const xPos = largoBase + (largoRampa / numSoportes) * i - 0.5;
+    const alturaActual = (xPos - largoBase) / largoRampa * alturaFinal;
+    if (alturaActual > 0.2) {
+      const geomSoporte = new THREE.BoxGeometry(0.5, alturaActual, ancho * 0.8);
+      const soporte = new THREE.Mesh(geomSoporte, matSoporte);
+      soporte.position.set(xPos, alturaActual / 2 - 0.2, 0);
+      grupoPista.add(soporte);
+    }
+  }
+
+  // ── 4. CURVA DE SALIDA CON TUBEGEOMETRY ────────────────────
+  const pInicio = new THREE.Vector3(largoTotal, alturaFinal, 0);
+  const dirRampa = new THREE.Vector3(largoRampa, alturaFinal, 0).normalize();
+  const pControl = pInicio.clone().addScaledVector(dirRampa, largoCurva * 0.5);
+
+  const pFin = new THREE.Vector3(
+    pInicio.x + largoCurva * Math.cos(anguloCurva),
+    alturaFinal,
+    pInicio.z - largoCurva * Math.sin(anguloCurva)
+  );
+
+  const curvaBezier = new THREE.QuadraticBezierCurve3(pInicio, pControl, pFin);
+
+  // Creamos la sección transversal de la pista (un rectángulo de ancho x 0.2 de grosor)
+  // pero con orientación controlada
+  const puntos = curvaBezier.getPoints(segmentosCurva);
+  
+  // Generamos la geometría de la curva manualmente
+  const vertices = [];
+  const indices = [];
+  const normals = [];
+  const uvs = [];
+
+  const grosor = 0.2;
+  const mitadAncho = ancho / 2;
+  
+  // Vector "arriba" global para mantener la superficie plana
+  const up = new THREE.Vector3(0, 1, 0);
+  
+  for (let i = 0; i <= segmentosCurva; i++) {
+    const t = i / segmentosCurva;
+    const punto = curvaBezier.getPoint(t);
+    
+    // Calculamos la tangente
+    const tangente = curvaBezier.getTangent(t).normalize();
+    
+    // Calculamos el vector "derecha" (perpendicular a la tangente y a up)
+    const derecha = new THREE.Vector3().crossVectors(tangente, up).normalize();
+    
+    // Si la tangente es casi vertical, usamos el eje Z como referencia
+    if (derecha.length() < 0.001) {
+      const zAxis = new THREE.Vector3(0, 0, 1);
+      derecha.crossVectors(tangente, zAxis).normalize();
+    }
+    
+    // Calculamos el vector "arriba" corregido
+    const upCorregido = new THREE.Vector3().crossVectors(derecha, tangente).normalize();
+    
+    // Cuatro vértices de la sección: esquinas del rectángulo
+    // Mantenemos el ancho en el eje "derecha" y el grosor en el eje "upCorregido"
+    const p1 = punto.clone().addScaledVector(derecha, -mitadAncho).addScaledVector(upCorregido, 0);
+    const p2 = punto.clone().addScaledVector(derecha, mitadAncho).addScaledVector(upCorregido, 0);
+    const p3 = punto.clone().addScaledVector(derecha, mitadAncho).addScaledVector(upCorregido, -grosor);
+    const p4 = punto.clone().addScaledVector(derecha, -mitadAncho).addScaledVector(upCorregido, -grosor);
+    
+    const baseIndex = i * 4;
+    vertices.push(p1.x, p1.y, p1.z);
+    vertices.push(p2.x, p2.y, p2.z);
+    vertices.push(p3.x, p3.y, p3.z);
+    vertices.push(p4.x, p4.y, p4.z);
+    
+    // UVs
+    const u = i / segmentosCurva;
+    uvs.push(u, 0);
+    uvs.push(u, 0.5);
+    uvs.push(u, 0.5);
+    uvs.push(u, 1);
+    
+    // Normales (aproximadas)
+    if (i > 0) {
+      // Añadimos triángulos para conectar con la sección anterior
+      const prev = (i - 1) * 4;
+      const curr = i * 4;
+      
+      // Cara superior
+      indices.push(prev, curr, prev + 1);
+      indices.push(curr, curr + 1, prev + 1);
+      
+      // Cara frontal
+      indices.push(prev + 1, curr + 1, prev + 2);
+      indices.push(curr + 1, curr + 2, prev + 2);
+      
+      // Cara inferior
+      indices.push(prev + 2, curr + 2, prev + 3);
+      indices.push(curr + 2, curr + 3, prev + 3);
+      
+      // Cara trasera
+      indices.push(prev + 3, curr + 3, prev);
+      indices.push(curr + 3, curr, prev);
+    }
+  }
+
+  const geomCurva = new THREE.BufferGeometry();
+  geomCurva.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geomCurva.setIndex(indices);
+  geomCurva.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geomCurva.computeVertexNormals();
+
+  const meshCurva = new THREE.Mesh(geomCurva, matPista);
+  grupoPista.add(meshCurva);
+
+  // ── 5. SOPORTES BAJO LA CURVA ──────────────────────────────
+  const numSoportesCurva = Math.max(2, Math.round(segmentosCurva / 5));
+  const puntosCurva = curvaBezier.getPoints(numSoportesCurva + 1);
+
+  for (let i = 1; i < puntosCurva.length - 1; i++) {
+    const p = puntosCurva[i];
+    const altSoporte = p.y - 0.2;
+    if (altSoporte <= 0.2) continue;
+
+    const geomSopCurva = new THREE.BoxGeometry(0.4, altSoporte, ancho * 0.8);
+    const sopCurva = new THREE.Mesh(geomSopCurva, matSoporte);
+    sopCurva.position.set(p.x, altSoporte / 2 -0.4, p.z);
+    grupoPista.add(sopCurva);
+  }
+
+  return grupoPista;
 }
