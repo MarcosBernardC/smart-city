@@ -1,0 +1,43 @@
+{
+  "id": "16",
+  "title": "Smart City Nexus",
+  "category": "Urban Automation",
+  "visibility": "PUBLIC",
+  "tags": "ELECTRONICS",
+  "domain": ["Embedded Systems", "Industrial Design", "Hardware Design"],
+  "status": {
+    "activity": "ACTIVE",
+    "maturity": "PROTOTYPE",
+    "version": "0.1.0",
+    "progress_pct": 0,
+    "scopes": {
+      "Schematic": {
+        "status": "PROTOTYPE",
+        "progress": 0
+      },
+      "Firmware": {
+        "status": "PROTOTYPE",
+        "progress": 0
+      },
+      "CAD_web": {
+        "status": "PROTOTYPE",
+        "progress": 0
+      }
+    }
+  },
+  "environment": {
+    "os": "Fedora 43",
+    "shell": "fish"
+  },
+  "repository": {
+    "ssh": "git@github.com:MarcosBernardC/smart-city-nexus.git",
+    "https": "https://github.com/MarcosBernardC/smart-city-nexus"
+  },
+  "stack": [
+    "C++",
+    "JavaScript",
+    "CAD",
+    "Arduino"
+  ],
+  "description": "Sistema automatizado de gestión urbana con control centralizado y cableado estructurado tipo arnés."
+}

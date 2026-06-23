@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador 3D: Smart City</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <div id="ui-info">
+        <strong>[Visualizador 3D - Smart City]</strong><br>
+        Base: 120cm x 80cm x 5cm<br>
+        <hr style="border-color: #333; margin: 6px 0;">
+        Controles Generales:<br>
+        - Clic Izquierdo: Rotar | Rueda: Zoom<br>
+        <hr style="border-color: #333; margin: 6px 0;">
+        <strong>Herramienta de Medición:</strong><br>
+        - Presiona <span style="color:#ffa500;font-weight:bold">[ M ]</span>: Activar/Desactivar Regla<br>
+        <span id="txt-distancia" style="color:#ffff00;">Distancia: --</span>
+    </div>
+
+    <div id="modo-regla">Modo Medición Activo: Haz clic en la base</div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
