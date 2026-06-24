@@ -1,6 +1,6 @@
 {
   "id": "16",
-  "title": "Smart City Nexus",
+  "title": "Smart City",
   "category": "Urban Automation",
   "visibility": "PUBLIC",
   "tags": "ELECTRONICS",
@@ -30,8 +30,8 @@
     "shell": "fish"
   },
   "repository": {
-    "ssh": "git@github.com:MarcosBernardC/smart-city-nexus.git",
-    "https": "https://github.com/MarcosBernardC/smart-city-nexus"
+    "ssh": "git@github.com:MarcosBernardC/smart-city.git",
+    "https": "https://github.com/MarcosBernardC/smart-city"
   },
   "stack": [
     "C++",
