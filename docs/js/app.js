@@ -546,22 +546,30 @@ plataformaRecoleccion.position.set(centroCampoX, 0.015, centroCampoZ);
 plataformaRecoleccion.receiveShadow = true;
 scene.add(plataformaRecoleccion);
 
-const tacho = crearTacho(1.1,2.8, 0x3E59AD);
-tacho.position.set(inicioCampoX+6, 0.05, centroCampoZ);
+const tacho = crearTacho(1.8,2.5, 0xE3B03B);
+tacho.position.set(inicioCampoX+6, 0.05, centroCampoZ+5);
 scene.add(tacho);
 
 // Tacho verde con flecha blanca
-const tachoVerde = crearTacho(1.0, 2.8, 0x2e7d32);
-tachoVerde.position.set(inicioCampoX+10, 0.05, centroCampoZ);
+const tachoVerde = crearTacho(1.8, 2.5, 0x2e7d32);
+tachoVerde.position.set(inicioCampoX+11, 0.05, centroCampoZ+5);
 scene.add(tachoVerde);
 // Tacho azul con flecha blanca
-const tachoAzul = crearTacho(1.2, 3.0, 0x1565c0);
-tachoAzul.position.set(inicioCampoX+14, 0.05, centroCampoZ);
+const tachoAzul = crearTacho(1.8, 2.5, 0x1565c0);
+tachoAzul.position.set(inicioCampoX+16, 0.05, centroCampoZ+5);
 scene.add(tachoAzul);
 // Tacho rojo con flecha blanca
-const tachoRojo = crearTacho(0.8, 2.5, 0xc62828);
-tachoRojo.position.set(inicioCampoX+18, 0.05, centroCampoZ);
+const tachoRojo = crearTacho(1.8, 2.5, 0xc62828);
+tachoRojo.position.set(inicioCampoX+21, 0.05, centroCampoZ+5);
 scene.add(tachoRojo);
+// Tacho marrón con flecha blanca
+const tachoMarron = crearTacho(1.8, 2.5, 0x7D501B);
+tachoMarron.position.set(inicioCampoX+26, 0.05, centroCampoZ+5);
+scene.add(tachoMarron);
+// Tacho marrón con flecha blanca
+const tachoNegro = crearTacho(1.8, 2.5, 0x000000);
+tachoNegro.position.set(inicioCampoX+31, 0.05, centroCampoZ+5);
+scene.add(tachoNegro);
 
 // Ejemplo: Crear una zona de suelo plomo claro (0xcccccc)
 // Tamaño 20x20
