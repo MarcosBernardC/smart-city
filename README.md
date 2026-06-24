@@ -9,7 +9,12 @@
 </p>
 
 ## Descripción
+
 Modelo a escala de una ciudad inteligente que integra automatización y sistemas embebidos para la optimización de la gestión de residuos y la infraestructura urbana.
+
+> 🚀 **Explora el prototipo en 3D**
+> Puedes visualizar la arquitectura de la ciudad y sus componentes interactivos directamente en tu navegador:
+> [🌐 Ver Modelo 3D Interactivo](https://marcosbernardc.github.io/smart-city/)
 
 <div align="center">
   <img src="assets/main_design_night.png" alt="Boceto de diseño general" width="800">
